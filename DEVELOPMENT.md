@@ -1344,6 +1344,12 @@ python manage.py migrate
 
 ### Phase 7 Checklist
 
+- [x] `frontend/vercel.json` created (SPA rewrites)
+- [x] `backend/render.yaml` created (build + start commands, env var declarations)
+- [x] `production.py` updated (WhiteNoise middleware/storage, CORS from env, `SECURE_PROXY_SSL_HEADER`)
+- [x] `whitenoise>=6.6` added to `requirements.txt` and installed
+- [x] `backend/.env.example` updated with production var comments
+- [x] Frontend production build verified (`vite build` — 116 modules, no errors)
 - [ ] Frontend deployed to Vercel, accessible at `https://*.vercel.app`
 - [ ] Backend deployed to Render, accessible at `https://*.onrender.com`
 - [ ] Managed MySQL provisioned and migrations applied
