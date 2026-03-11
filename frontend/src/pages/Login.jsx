@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { login } from '../api/authApi'
+import { login, getMe } from '../api/authApi'
 import useAuthStore from '../store/authStore'
 
 export default function Login() {
@@ -19,7 +19,8 @@ export default function Login() {
     try {
       const { data } = await login(form)
       setAccessToken(data.access)
-      // Fetch current user profile — implemented in Phase 3
+      const { data: me } = await getMe()
+      setUser(me)
       navigate('/')
     } catch (err) {
       setError(err.response?.data?.detail || 'Invalid credentials.')
