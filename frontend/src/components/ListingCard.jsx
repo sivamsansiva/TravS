@@ -1,9 +1,43 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { timeAgo, truncate } from '../utils/timeAgo'
 import useAuthStore from '../store/authStore'
+import { likeListing, saveListing } from '../api/listingsApi'
 
 export default function ListingCard({ listing }) {
   const { user } = useAuthStore()
+  const [likesCount, setLikesCount] = useState(listing.likes_count)
+  const [saved, setSaved] = useState(false)
+  const [liking, setLiking] = useState(false)
+  const [saving, setSaving] = useState(false)
+
+  const handleLike = async (e) => {
+    e.preventDefault()
+    if (liking) return
+    setLiking(true)
+    try {
+      const { data } = await likeListing(listing.id)
+      setLikesCount(data.likes_count)
+    } catch {
+      // silently ignore
+    } finally {
+      setLiking(false)
+    }
+  }
+
+  const handleSave = async (e) => {
+    e.preventDefault()
+    if (saving) return
+    setSaving(true)
+    try {
+      const { data } = await saveListing(listing.id)
+      setSaved(data.saved)
+    } catch {
+      // silently ignore
+    } finally {
+      setSaving(false)
+    }
+  }
 
   return (
     <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow overflow-hidden border border-gray-100">
@@ -37,12 +71,22 @@ export default function ListingCard({ listing }) {
         </div>
 
         {user && (
-          <div className="flex items-center gap-3 mt-3 pt-3 border-t border-gray-100 text-sm text-gray-500">
-            <button className="hover:text-brand-coral transition-colors flex items-center gap-1">
-              ♥ {listing.likes_count}
+          <div className="flex items-center gap-3 mt-3 pt-3 border-t border-gray-100 text-sm">
+            <button
+              onClick={handleLike}
+              disabled={liking}
+              className="flex items-center gap-1 text-gray-400 hover:text-brand-coral transition-colors disabled:opacity-50"
+            >
+              ♥ {likesCount}
             </button>
-            <button className="hover:text-brand-cobalt transition-colors">
-              🔖 Save
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className={`flex items-center gap-1 transition-colors disabled:opacity-50 ${
+                saved ? 'text-brand-cobalt' : 'text-gray-400 hover:text-brand-cobalt'
+              }`}
+            >
+              🔖 {saved ? 'Saved' : 'Save'}
             </button>
           </div>
         )}
