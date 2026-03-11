@@ -1,9 +1,11 @@
 import { Link, useNavigate } from 'react-router-dom'
 import useAuthStore from '../store/authStore'
+import useListingStore from '../store/listingStore'
 import { logout } from '../api/authApi'
 
 export default function Navbar() {
   const { user, accessToken, logout: clearStore } = useAuthStore()
+  const { openCreate } = useListingStore()
   const navigate = useNavigate()
 
   const handleLogout = async () => {
@@ -25,9 +27,9 @@ export default function Navbar() {
       <div className="flex items-center gap-4 text-sm font-medium">
         {user ? (
           <>
-            <Link to="/create" className="bg-brand-cobalt hover:bg-brand-coral px-4 py-2 rounded-lg transition-colors">
+            <button onClick={openCreate} className="bg-brand-cobalt hover:bg-brand-coral px-4 py-2 rounded-lg transition-colors">
               + Create
-            </Link>
+            </button>
             <Link to="/profile" className="hover:text-brand-coral transition-colors">
               Profile
             </Link>

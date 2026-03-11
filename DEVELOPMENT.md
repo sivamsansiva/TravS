@@ -59,17 +59,17 @@ export default {
 
 ## Build Timeline Overview
 
-| Phase | Hours    | Focus                  |
-|-------|----------|------------------------|
-| 1     | 0 – 2 h  | Project Setup          |
-| 2     | 2 – 5 h  | Auth — Backend         |
-| 3     | 5 – 7 h  | Auth — Frontend        |
-| 4     | 7 – 11 h | Listings CRUD          |
-| 5     | 11 – 14 h| Optional Features      |
-| 6     | 14 – 17 h| UI Polish              |
-| 7     | 17 – 20 h| Deployment             |
-| 8     | 20 – 22 h| README                 |
-| 9     | 22 – 24 h| Buffer & Submission    |
+| Phase |  Focus                  |
+|-------|-------------------------|
+| 1     |  Project Setup          |
+| 2     |  Auth — Backend         |
+| 3     |  Auth — Frontend        |
+| 4     |  Listings CRUD          |
+| 5     |  Optional Features      |
+| 6     |  UI Polish              |
+| 7     |  Deployment             |
+| 8     |  README                 |
+| 9     |  Buffer & Submission    |
 
 ---
 

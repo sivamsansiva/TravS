@@ -3,7 +3,7 @@ from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from .models import Listing, SavedListing
+from .models import Listing, SavedListing, LikedListing
 from .serializers import ListingSerializer
 from .permissions import IsOwnerOrReadOnly
 from .filters import ListingFilter
@@ -18,14 +18,21 @@ class ListingViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
-    # POST /api/listings/{id}/like/
+    # POST /api/listings/{id}/like/  — toggles like/unlike
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def like(self, request, pk=None):
+        listing = self.get_object()
         with transaction.atomic():
-            listing = self.get_object()
-            listing.likes_count += 1
-            listing.save(update_fields=['likes_count'])
-        return Response({'likes_count': listing.likes_count})
+            obj, created = LikedListing.objects.get_or_create(user=request.user, listing=listing)
+            if created:
+                listing.likes_count = listing.liked_by.count()
+                listing.save(update_fields=['likes_count'])
+                return Response({'liked': True,  'likes_count': listing.likes_count})
+            else:
+                obj.delete()
+                listing.likes_count = listing.liked_by.count()
+                listing.save(update_fields=['likes_count'])
+                return Response({'liked': False, 'likes_count': listing.likes_count})
 
     # POST /api/listings/{id}/save/  — toggles save/unsave
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])

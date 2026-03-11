@@ -7,6 +7,7 @@ import { likeListing, saveListing } from '../api/listingsApi'
 export default function ListingCard({ listing }) {
   const { user } = useAuthStore()
   const [likesCount, setLikesCount] = useState(listing.likes_count)
+  const [liked, setLiked] = useState(listing.is_liked ?? false)
   const [saved, setSaved] = useState(false)
   const [liking, setLiking] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -14,12 +15,20 @@ export default function ListingCard({ listing }) {
   const handleLike = async (e) => {
     e.preventDefault()
     if (liking) return
+    // Optimistic update
+    const newLiked = !liked
+    setLiked(newLiked)
+    setLikesCount((c) => newLiked ? c + 1 : c - 1)
     setLiking(true)
     try {
       const { data } = await likeListing(listing.id)
+      // Sync with server truth
+      setLiked(data.liked)
       setLikesCount(data.likes_count)
     } catch {
-      // silently ignore
+      // Revert on error
+      setLiked(!newLiked)
+      setLikesCount((c) => newLiked ? c - 1 : c + 1)
     } finally {
       setLiking(false)
     }
@@ -75,9 +84,12 @@ export default function ListingCard({ listing }) {
             <button
               onClick={handleLike}
               disabled={liking}
-              className="flex items-center gap-1 text-gray-400 hover:text-brand-coral transition-colors disabled:opacity-50"
+              className={`flex items-center gap-1 transition-colors disabled:opacity-50 ${
+                liked ? 'text-brand-coral' : 'text-gray-400 hover:text-brand-coral'
+              }`}
+              title={liked ? 'Unlike' : 'Like'}
             >
-              ♥ {likesCount}
+              {liked ? '♥' : '♡'} {likesCount}
             </button>
             <button
               onClick={handleSave}

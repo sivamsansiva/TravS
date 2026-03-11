@@ -1,5 +1,6 @@
 from django.db import models
 from django.conf import settings
+from cloudinary.models import CloudinaryField
 
 
 class Listing(models.Model):
@@ -10,7 +11,7 @@ class Listing(models.Model):
     )
     title       = models.CharField(max_length=200)
     location    = models.CharField(max_length=200)
-    image_url   = models.URLField(max_length=500)
+    image       = CloudinaryField('image', folder='travs/listings', blank=True, null=True)
     description = models.TextField()
     price       = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     likes_count = models.PositiveIntegerField(default=0)
@@ -34,3 +35,15 @@ class SavedListing(models.Model):
 
     def __str__(self):
         return f"{self.user} saved {self.listing}"
+
+
+class LikedListing(models.Model):
+    user       = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='liked_listings')
+    listing    = models.ForeignKey(Listing, on_delete=models.CASCADE, related_name='liked_by')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'listing')
+
+    def __str__(self):
+        return f"{self.user} liked {self.listing}"

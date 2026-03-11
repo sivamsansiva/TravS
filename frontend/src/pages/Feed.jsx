@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { getListings } from '../api/listingsApi'
 import ListingCard from '../components/ListingCard'
 import SearchBar from '../components/SearchBar'
+import CreateListing from './CreateListing'
+import useListingStore from '../store/listingStore'
 
 export default function Feed() {
   const [listings, setListings] = useState([])
@@ -9,6 +11,7 @@ export default function Feed() {
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [search, setSearch] = useState('')
+  const { isCreateOpen, closeCreate } = useListingStore()
 
   useEffect(() => {
     setLoading(true)
@@ -21,8 +24,15 @@ export default function Feed() {
       .finally(() => setLoading(false))
   }, [page, search])
 
+  const handleCreateSuccess = () => {
+    closeCreate()
+    setPage(1)
+    setSearch('')
+  }
+
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
+    <>
+      <div className="max-w-7xl mx-auto px-4 py-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-brand-navy mb-2">Discover Experiences</h1>
         <p className="text-gray-500 mb-4">Find unique travel experiences around the world</p>
@@ -71,5 +81,10 @@ export default function Feed() {
         </>
       )}
     </div>
+
+      {isCreateOpen && (
+        <CreateListing onClose={closeCreate} onSuccess={handleCreateSuccess} />
+      )}
+    </>
   )
 }

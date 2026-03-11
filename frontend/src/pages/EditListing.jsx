@@ -1,17 +1,22 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { getListing, updateListing } from '../api/listingsApi'
+import { getListing, patchListing } from '../api/listingsApi'
 import useAuthStore from '../store/authStore'
 
 export default function EditListing() {
   const { id } = useParams()
   const { user } = useAuthStore()
   const navigate = useNavigate()
-  const [form, setForm] = useState({ title: '', location: '', image_url: '', description: '', price: '' })
+  const [form, setForm] = useState({ title: '', location: '', description: '', price: '' })
+  const [existingImageUrl, setExistingImageUrl] = useState(null)
+  const [imageFile, setImageFile] = useState(null)
+  const [imagePreview, setImagePreview] = useState(null)
+  const [dragOver, setDragOver] = useState(false)
   const [errors, setErrors] = useState({})
   const [submitting, setSubmitting] = useState(false)
   const [loading, setLoading] = useState(true)
   const [forbidden, setForbidden] = useState(false)
+  const fileInputRef = useRef(null)
 
   useEffect(() => {
     getListing(id).then(({ data }) => {
@@ -21,10 +26,10 @@ export default function EditListing() {
         setForm({
           title: data.title || '',
           location: data.location || '',
-          image_url: data.image_url || '',
           description: data.description || '',
           price: data.price || '',
         })
+        setExistingImageUrl(data.image_url || null)
       }
     }).catch(() => navigate('/')).finally(() => setLoading(false))
   }, [id, user])
@@ -40,16 +45,51 @@ export default function EditListing() {
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value })
 
+  const applyFile = (file) => {
+    if (!file || !file.type.startsWith('image/')) return
+    setImageFile(file)
+    setImagePreview(URL.createObjectURL(file))
+  }
+
+  const handleFileInput = (e) => applyFile(e.target.files[0])
+
+  const handleDrop = (e) => {
+    e.preventDefault()
+    setDragOver(false)
+    applyFile(e.dataTransfer.files[0])
+  }
+
+  const removeNewImage = () => {
+    setImageFile(null)
+    setImagePreview(null)
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     const e2 = validate()
     if (Object.keys(e2).length) { setErrors(e2); return }
     setSubmitting(true)
     try {
-      await updateListing(id, { ...form, price: form.price || null })
+      const fd = new FormData()
+      fd.append('title', form.title)
+      fd.append('location', form.location)
+      fd.append('description', form.description)
+      if (form.price) fd.append('price', form.price)
+      if (imageFile) fd.append('image', imageFile)
+      await patchListing(id, fd)
       navigate(`/listings/${id}`)
     } catch (err) {
-      setErrors({ api: err.response?.data?.detail || 'Failed to update listing' })
+      const data = err.response?.data
+      if (data && typeof data === 'object' && !data.detail) {
+        const fieldErrors = {}
+        Object.entries(data).forEach(([key, msgs]) => {
+          fieldErrors[key] = Array.isArray(msgs) ? msgs[0] : msgs
+        })
+        setErrors(fieldErrors)
+      } else {
+        setErrors({ api: data?.detail || 'Something went wrong. Please try again.' })
+      }
     } finally {
       setSubmitting(false)
     }
@@ -68,12 +108,13 @@ export default function EditListing() {
     </div>
   )
 
-  const fields = [
-    { name: 'title', label: 'Title', type: 'text' },
-    { name: 'location', label: 'Location', type: 'text' },
-    { name: 'image_url', label: 'Image URL', type: 'url' },
-    { name: 'price', label: 'Price (optional)', type: 'number' },
+  const textFields = [
+    { name: 'title',    label: 'Title',           type: 'text'   },
+    { name: 'location', label: 'Location',         type: 'text'   },
+    { name: 'price',    label: 'Price (optional)', type: 'number' },
   ]
+
+  const displayedImage = imagePreview || existingImageUrl
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
@@ -86,7 +127,60 @@ export default function EditListing() {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-5">
-        {fields.map(({ name, label, type }) => (
+        {/* Image section */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Photo</label>
+
+          {displayedImage ? (
+            <div className="relative rounded-xl overflow-hidden">
+              <img src={displayedImage} alt="Preview" className="w-full h-56 object-cover" />
+              {imagePreview && (
+                <button
+                  type="button"
+                  onClick={removeNewImage}
+                  className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/60 hover:bg-black/80 flex items-center justify-center text-white text-lg leading-none transition-colors"
+                  aria-label="Remove new image"
+                >
+                  ×
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="absolute bottom-2 right-2 text-xs bg-black/60 hover:bg-black/80 text-white px-3 py-1 rounded-full transition-colors"
+              >
+                Change photo
+              </button>
+            </div>
+          ) : (
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={handleDrop}
+              className={`flex flex-col items-center justify-center gap-2 border-2 border-dashed rounded-xl h-40 cursor-pointer transition-colors ${
+                dragOver ? 'border-brand-cobalt bg-blue-50' : 'border-gray-300 bg-gray-50 hover:border-brand-cobalt hover:bg-blue-50'
+              }`}
+            >
+              <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14M14 8h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <p className="text-sm font-medium text-gray-600">Click to upload or drag & drop</p>
+              <p className="text-xs text-gray-400">JPG, PNG, WEBP up to 10 MB</p>
+            </div>
+          )}
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleFileInput}
+          />
+        </div>
+
+        {textFields.map(({ name, label, type }) => (
           <div key={name}>
             <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
             <input
